@@ -19,7 +19,6 @@ for result in results:
 
         x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-        # 赤枠描画
         cv2.rectangle(
             image,
             (x1, y1),
