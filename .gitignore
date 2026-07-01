@@ -1,4 +1,6 @@
 yolo*.pt
+best260408.pt
+
 __pycache__/
 runs/
 debug/
