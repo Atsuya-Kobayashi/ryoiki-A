@@ -1,0 +1,81 @@
+import cv2
+from ultralytics import YOLO
+import math
+
+model = YOLO("best260408.pt")
+
+video_path = "ex5-26.mp4"
+cap = cv2.VideoCapture(video_path)
+
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = cap.get(cv2.CAP_PROP_FPS)
+
+out = cv2.VideoWriter(
+    "result6.mp4",
+    cv2.VideoWriter_fourcc(*"mp4v"),
+    fps,
+    (width, height)
+)
+
+prev_centers = {}
+
+while cap.isOpened():
+
+    ret, frame = cap.read()
+
+    if not ret:
+        break
+
+    results = model.track(
+        frame,
+        persist=True
+    )
+
+    if results[0].boxes.id is not None:
+
+        boxes = results[0].boxes.xyxy.cpu().numpy()
+        ids = results[0].boxes.id.cpu().numpy()
+
+        for box, track_id in zip(boxes, ids):
+
+            x1, y1, x2, y2 = map(int, box)
+
+            cx = (x1 + x2) // 2
+            cy = (y1 + y2) // 2
+
+            color = (0, 255, 0)
+
+            if track_id in prev_centers:
+
+                px, py = prev_centers[track_id]
+
+                distance = math.sqrt(
+                    (cx - px) ** 2 + (cy - py) ** 2
+                )
+
+                if distance >= 4:
+                    color = (0, 0, 255)
+                else:
+                    color = (0, 255, 0)
+
+            cv2.rectangle(
+                frame,
+                (x1, y1),
+                (x2, y2),
+                color,
+                2
+            )
+
+            prev_centers[track_id] = (cx, cy)
+
+    out.write(frame)
+
+    cv2.imshow("Tracking", frame)
+
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+cap.release()
+out.release()
+cv2.destroyAllWindows()
